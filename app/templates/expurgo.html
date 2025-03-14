@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %} Expurgo {% endblock %}
+{% block script %} 
+<script>
+    
+
+    $(document).ready(() => {
+        
+        function filtrar() {
+            var filtro = $("#filter").val().toLowerCase();
+            var linhasVisiveis = 0;
+            $(".con-row").each(function() {
+                var nomeConector = ''
+                var statusConector = ''
+                var configConector = ''
+                if($(this).find(".con-details"))
+                    nomeConector = $(this).find(".con-details").text().toLowerCase();
+                if($(this).find(".con-state"))
+                    statusConector = $(this).find(".con-state").text().toLowerCase();
+                if($(this).find(".con-config"))
+                    configConector = $(this).find('.con-config').text().toLowerCase();
+
+                if (nomeConector.includes(filtro) || statusConector.includes(filtro) || configConector.includes(filtro)) {
+                    $(this).show();
+                    linhasVisiveis++;
+                } else {
+                    $(this).hide();
+                }
+            });
+            
+            $(".count").val(linhasVisiveis);
+        }
+        $("#filter").on("keyup", filtrar);
+
+
+
+        $('#validar_tabelas').on('click', function(){
+            exibirMensagem('info', 'Atualizando lista...', 5000);
+            $.ajax({
+                url: "{% url 'validar_tabelas' %}",
+                method: 'GET',
+                success: function(data) {
+                    atualizarListaTabelas();
+                    exibirMensagem('success', 'Lista atualizada', 5000);
+                }
+            })
+        });
+
+        $('#select-all').click(function () {
+            $('.servidor-row input:checkbox').prop('checked', this.checked);
+        });
+        
+        
+        $('#deletar_selecionadas').on('click', function(){
+            exibirMensagem('info', 'deletando tabelas selecionadas...', 5000);
+            servidores_rows = $('.servidor-row input:checkbox:checked');
+            servers = []
+            servidores_rows.each(function(s, servidor){
+                servers.push($(servidor).prop('name'));
+            })
+            console.log(servers)
+            $.ajax({
+            url: "{% url 'deletar_selecionadas' %}",
+                method: 'POST',
+                data: { 'deletar' : servers },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function(data) {
+                    atualizarListaTabelas();
+                    exibirMensagem('success', 'Tabelas excluidas', 5000);
+                }
+            })
+        });
+        
+        function atualizarListaTabelas(){
+            $.ajax({
+                url: "{% url 'atualizar_tabelas' %}",
+                success: function(data) {
+                    $("#expurgo_tables").empty();
+                    $('#expurgo_tables').html(data.html);
+                    exibirMensagem('success', 'Tabelas atualizadas', 5000);
+                }
+            })
+        }
+        atualizarListaTabelas();
+
+    })
+</script>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="container">
+    <div class="row">
+        <div class="col" style="text-align: center; padding: 15px;">
+            <button class="btn btn-primary" id='validar_tabelas'>Validar tabelas</button>
+            <button class="btn btn-primary" id='deletar_selecionadas'>Deletar selecionadas</button>
+        </div>
+    </div>
+    <div class="row d-flex">
+        <div class="col-sm-1">
+            <input type="text" disabled="True" class="form-control count">
+        </div>
+        <div class="col-sm-11">
+            <input type="text" id="filter" name="filter" class="form-control text-center" placeholder="Filtrar: Base, Tabela, Servidor, Dropada / Não Dropada"/>
+        </div>
+    </div>
+    <div class="row" id="expurgo_tables">
+        
+    </div>
+</div>
+
+
+
+
+{% endblock %}
+
+

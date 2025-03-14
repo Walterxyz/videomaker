@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %} Inicio {% endblock %}
+{% block script %}
+<script>
+    $(document).ready(function() {
+
+        function filtrarServidores() {
+            var filtro = $("#filterServers").val().toLowerCase();
+            $(".servidor-row").each(function() {
+                var filtraservidor = ''
+                var filtrabase = ''
+                var filtrausuario = ''
+                var filtraengine = ''
+                var filtraapelido = ''
+                
+                if($(this).find(".filtra-apelido"))
+                filtraapelido = $(this).find(".filtra-apelido").text().toLowerCase();
+                if($(this).find(".filtra-servidor"))
+                filtraservidor = $(this).find(".filtra-servidor").text().toLowerCase();
+                if($(this).find(".filtra-base"))
+                filtrabase = $(this).find(".filtra-base").text().toLowerCase();
+                if($(this).find(".filtra-usuario"))
+                filtrausuario = $(this).find('.filtra-usuario').text().toLowerCase();
+                if($(this).find(".filtra-engine"))
+                filtraengine = $(this).find('.filtra-engine').text().toLowerCase();
+    
+                if (filtraapelido.includes(filtro) || filtraservidor.includes(filtro) || filtrabase.includes(filtro) || filtrausuario.includes(filtro) || filtraengine.includes(filtro)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+    
+        $("#filterServers").on("keyup", filtrarServidores);
+
+
+        
+        function atualizarListaServidores(){
+            $('#servidoresAcesso').load("{% url 'atualizar_acessos' %}");
+        }
+
+        $(document).on('click', '.deletar_servidores', function(e) {
+            e.preventDefault();
+            url = `{% url 'deletar_servidor' %}`;
+            id = $(this).data('id');
+            var clickedButton = $(this);
+
+            if(confirm('Deseja excluir o servidor?')){       
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    data: { 'id' : id },
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    },
+                    success: function(data) {
+                        if(data['status'])
+                            exibirMensagem('success', 'Servidor excluido', 2000);
+                        atualizarListaServidores();
+                    }
+                });
+            }
+        });
+        
+        $(document).on('change', '.ativa_slot', function(e){
+            e.preventDefault();
+            url = `{% url 'ativa_slot' %}`;
+            id = $(this).attr('name');
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: { 'id' : id },
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function(data) {
+                    if(data['status'])
+                        exibirMensagem('success', 'Slot atualizado', 2000);
+                    atualizarListaServidores();
+                }
+            });
+        });
+
+        $('#gerenciar_servidores').on('click', function(){
+            atualizarListaServidores();
+            exibirMensagem('success', 'Lista de Servidores atualizada', 1000);
+        });
+
+
+        $('#form-servidores').on('submit', function(e){
+            e.preventDefault();
+
+            data = {
+                'apelido': $('#apelido').val(),
+                'servidor': $('#servidor').val(),
+                'bases': $('#base').val(),
+                'usuario': $('#usuario').val(),
+                'senha': $('#senha').val(),
+                'engine': $('#engine').val(),
+            }
+
+            $.ajax({
+                url: "{% url 'novo_servidor' %}",
+                method: 'POST',
+                data: {'dados': JSON.stringify(data)},
+                dataType: 'json',
+                beforeSend: function(xhr, settings) {
+                    xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                },
+                success: function(data) {
+                    if(data['status'])
+                        exibirMensagem('success', 'Servidor criado', 3000);
+                    else
+                        exibirMensagem('danger', 'Falha ao tentar se conectar ao servidor! Valide os dados inseridos', 5000)
+                    atualizarListaServidores()
+                }
+            })
+        });
+
+        atualizarListaServidores();
+
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+      <div class="row">
+          <h3 id='ServidoresAcessosLabel'>Gerenciar Servidores</h3>
+      </div>
+      <div class="row">
+          <div class="container">
+              <div class="row">
+                  <div class="col-4">
+                      <form id="form-servidores" name="form-servidores" method="POST">
+                          <div class="form-group">
+                              <label for="servidor">Apelido:</label>
+                              <input type="text" class="form-control" id="apelido" name="apelido" placeholder="Apelido" required>
+                          </div>
+                          <div class="form-group">
+                              <label for="servidor">Servidor:</label>
+                              <input type="text" class="form-control" id="servidor" name="servidor" placeholder="Servidor" required>
+                          </div>
+                          <div class="form-group">
+                              <label for="base">Bases:</label>
+                              <input type="text" class="form-control" id="base" name="base" placeholder="Base1, base2, base3" required>
+                          </div>
+                          <div class="form-group">
+                              <label for="usuario">Usuario:</label>
+                              <input type="text" class="form-control" id="usuario" name="usuario" placeholder="Usuario" required>
+                          </div>
+                          <div class="form-group">
+                              <label for="senha">Senha:</label>
+                              <input type="password" class="form-control" id="senha" name="senha" placeholder="Senha" required>
+                          </div>
+                          <div class="form-group">
+                              <label for="base">Engine:</label>
+                              <select class="form-control" id="engine" name="engine">
+                                  <option value="sqlserver">SQLServer</option>
+                                  <option value="postgresql">PostgreSQL</option>
+                              </select>
+                          </div>
+                          <div class="text-center m-2">
+                              <button type="submit" id="salvar_servidor" class="btn btn-primary">Salvar</button>
+                          </div>
+                      </form>
+                  </div>
+                  <div class="col-8">
+                      <div class="row">
+                          <div class="col-sm-12">
+                              <input type="text" id="filterServers" name="filterServers" class="form-control text-center" placeholder="Filtrar: Engine, Servidor, Usuario, Base"/>
+                          </div>
+                      </div>
+                      <div class="row" id="servidoresAcesso">
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

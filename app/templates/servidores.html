@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+{% block title %} Servidores {% endblock %}
+{% block script %}
+<script>
+        
+    function atualizarStatusServidores() {
+        if($("#filtro-servidor").val() == ''){
+            exibirMensagem('info', 'Atualizando lista...', 5000);
+            $.ajax({
+                url: "{% url 'atualizar_status_servidores' %}",
+                success: function(data) {
+                    $("#status-servidores").html(data.html);
+                    exibirMensagem('success', 'Lista atualizada', 5000);
+                },
+            });
+        }
+    }
+
+    function filtrarServidores() {
+        var filtro = $("#filtro-servidor").val().toLowerCase();
+        $(".servidor-row").each(function() {
+            var nomeServidor = $(this).find(".nome-servidor").text().toLowerCase();
+            var statusServidor = $(this).find(".status-servidor").text().toLowerCase();
+            if (nomeServidor.includes(filtro) || statusServidor.includes(filtro)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        atualizarStatusServidores();
+
+        setInterval(atualizarStatusServidores, 60000);
+
+        $("#filtro-servidor").on("keyup", filtrarServidores);
+
+        $('#atualizar-btn').on('click', function() {
+            exibirMensagem('info', 'Pingando nos Servidores...', 5000);
+            $.ajax({
+                url: '{% url "atualizar_conexoes" %}',
+                method: 'GET',
+                success: function(response) {
+                    console.log(response)
+                    if(response.status){
+                        console.log('Conexões atualizadas com sucesso!');
+                        exibirMensagem('success', 'Status Atualizados!', 5000);
+                        atualizarStatusServidores()
+                    }
+                },
+                error: function(error) {
+                    console.error('Ocorreu um erro ao atualizar as conexões.');
+                    exibirMensagem('danger', 'Erro ao atualizar Status! Verifique sua VPN', 5000);
+                }
+            });
+        });
+        $('#limpar-logs-kafka').on('click', function() {
+            exibirMensagem('info', 'Limpando logs kafka...', 5000);
+            $.ajax({
+                url: '{ url "" }', //limpar_logs_kafka
+                method: 'GET',
+                success: function(response) {
+                    console.log(response)
+                    if(response.status){
+                        console.log('Logs limpos com sucesso!');
+                        exibirMensagem('success', 'Logs limpos com sucesso!', 5000)
+                    }
+                },
+                error: function(error) {
+                  console.error('Ocorreu um erro ao limpar os logs.');
+                  exibirMensagem('danger', 'Erro ao limpar os logs! Verifique sua VPN', 5000);
+                }
+            })
+        })
+        
+        
+        const restartModal = document.querySelector('#restartModal')
+        const btnSend = restartModal.querySelector('.modal-footer button')
+        restartModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget
+            const service = button.getAttribute('data-bs-service')
+            const server = button.getAttribute('data-bs-server')
+            const modalTitle = restartModal.querySelector('#restartModalLabel')
+            const user = restartModal.querySelector('#user')
+            const pwd = restartModal.querySelector('#password')
+            $('#service').val(service)
+            $('#servidor').val(server)
+
+            modalTitle.textContent = `Reiniciar ${service.toUpperCase()} em ${server.toUpperCase()}`
+            btnSend.textContent = modalTitle.textContent
+        });
+
+        $('#reinicia_servico').on('click', event => {
+            exibirMensagem('info', 'Reiniciando Servico...', 5000);
+            const service = $('#service').val()
+            const server = $('#servidor').val()
+            const user = $('#user').val()
+            const pwd = $('#password').val()
+
+            if(service && server && user && pwd)
+                $.ajax({
+                    url: '{% url "reiniciar_servico" %}',
+                    data: {'servico': service, 'servidor': server, 'user': user, 'pwd': pwd},
+                    method: 'POST',
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    },
+                    success: function(response) {
+                        console.log(response)
+                        if(response.status){
+                            console.log('Conexao atualizada com sucesso!');
+                            exibirMensagem('success', 'Servico Reiniciado!', 5000);
+                        }
+                    },
+                    error: function(error) {
+                        console.error('Ocorreu um erro ao atualizar as conexões.');
+                        exibirMensagem('success', 'Erro ao reiniciar o Serviço! Faça o primeiro login ou verifique a VPN', 5000);
+                    }
+                }).then(function() {
+                  console.log(server)
+                  $('#' + server).find('button.atualizar-servico').trigger('click');
+                  atualizarStatusServidores()
+                });
+            else
+              exibirMensagem('info', 'Nada feito', 2000);
+        });
+
+        
+        const infoModal = document.querySelector('#infoModal')
+        const btnSendInfo = infoModal.querySelector('.modal-footer button')
+        infoModal.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget
+            const service = button.getAttribute('data-bs-service')
+            const server = button.getAttribute('data-bs-server')
+            const modalTitle = infoModal.querySelector('#infoModalLabel')
+            const user = infoModal.querySelector('#user-info')
+            const pwd = infoModal.querySelector('#password-info')
+            $('#service-info').val(service)
+            $('#servidor-info').val(server)
+            $('#cpu-info').html(`<h5>CPU</h5><p></p>`)
+            $('#memory-info').html(`<h5>Memória</h5><p></p>`)
+            $('#disk-info').html(`<h5>Disco</h5><p></p>`)
+
+            modalTitle.textContent = `Obter Informações do ${server.toUpperCase()}`
+            btnSendInfo.textContent = modalTitle.textContent
+        });
+
+        $('#obter_informacoes').on('click', event => {
+            exibirMensagem('info', 'Obtendo Infos...', 5000);
+            const service = $('#service-info').val()
+            const server = $('#servidor-info').val()
+            const user = $('#user-info').val()
+            const pwd = $('#password-info').val()
+
+            if(service && server && user && pwd)
+                $.ajax({
+                    url: '{% url "obter_detalhes_servico" %}',
+                    data: {'servico': service, 'servidor': server, 'user': user, 'pwd': pwd},
+                    method: 'POST',
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    },
+                    success: function(response) {
+                        if(response.status){
+                            exibirMensagem('success', 'Informações obtidas!', 5000);
+                            data = response.servidor
+                            $('#cpu-info').html(`<h5>CPU</h5><p>` + data[0]['fields']['cpu'] + `</p>`)
+                            $('#memory-info').html(`<h5>Memória</h5><p>` + data[0]['fields']['memory'] + `</p>`)
+                            $('#disk-info').html(`<h5>Disco</h5><p>` + data[0]['fields']['disk'] + `</p>`)
+
+                            console.log(data)
+                        }
+                    },
+                    error: function(error) {
+                        exibirMensagem('warning', 'Erro ao Obter informações', 5000);
+                    }
+                });
+        });
+
+        $('#atualizar_todos_detalhes').on('click', function() {
+            exibirMensagem('info', 'Atualizando informações...', 5000);
+            $.ajax({
+                url: "{% url 'atualizar_todos_detalhes' %}",
+                method: 'POST',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                    usuario: $('#user-detalhes').val(),
+                    password: $('#password-detalhes').val(),
+                },
+                success: function(data) {
+                    if(data.status){
+                        exibirMensagem('success', 'Informações atualizadas!', 5000);
+                        atualizarStatusServidores()
+                    }
+                }
+            })
+        })
+
+
+    });
+</script>
+<style>
+    .servidor-infos{
+        font-size: 13pt;
+        font-family: monospace;
+        line-height: 22pt;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container d-flex flex-column justify-content-center align-items-center">
+    <h2 class="mt-4">Lista de Servidores</h2>
+    <input type="text" class="form-control mb-2" id="filtro-servidor" placeholder="Filtrar por nome ou status do servidor">
+    <div class="row my-4">
+        <div class="col">
+            <button id="atualizar-btn" class="btn btn-primary">Atualizar status em Todos</button>
+        </div>
+        <div class="col">
+            <button id="atualizar-detalhes-btn" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#atualizarDetalhesModal">Atualizar Todos os Detalhes</button>
+        </div>
+        <!-- <div class="col">
+            <button id="limpar-logs-kafka" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#atualizarDetalhesModal" >Limpar logs kafka</button>
+        </div> -->
+    </div>
+
+    <table class="table text-center">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Porta</th>
+                <th>Status</th>
+                <th>Tipo</th>
+                <th>Ultima Atualização</th>
+                <th>CPU load</th>
+                <th>Memoria Livre</th>
+                <th>Disco%</th>
+                <th>Disponivel</th>
+                <th>Att Status</th>
+                <th>Detalhes</th>
+                <th>Restart</th>
+            </tr>
+        </thead>
+        <tbody id="status-servidores">
+        </tbody>
+    </table>
+</div>
+
+
+<div class="modal fade" id="restartModal" tabindex="-1" aria-labelledby="restartModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="restartModalLabel">Reiniciar Serviço</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="user" class="col-form-label">Usuário:</label>
+              <input type="text" class="form-control" id="user" name="user"/>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="col-form-label">Senha:</label>
+              <input type="password" class="form-control" id="password" name="password"/>
+              <input type="hidden" class="form-control" id="servidor" name="servidor"/>
+              <input type="hidden" class="form-control" id="service" name="service"/>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="reinicia_servico" data-bs-dismiss="modal" class="btn btn-primary">Reiniciar Serviço </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+<div class="modal fade" id="atualizarDetalhesModal" tabindex="-1" aria-labelledby="atualizarDetalhesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="atualizarDetalhesModalLabel">Atualizar Detalhes</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="user" class="col-form-label">Usuário:</label>
+              <input type="text" class="form-control" id="user-detalhes" name="user-detalhes"/>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="col-form-label">Senha:</label>
+              <input type="password" class="form-control" id="password-detalhes" name="password-detalhes"/>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="atualizar_todos_detalhes" data-bs-dismiss="modal" class="btn btn-primary">Atualizar Detalhes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+<div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="infoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="infoModalLabel">Obter Informações do Servidor</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+                <div class="col-4">
+                    <form>
+                      <div class="mb-3">
+                        <label for="user-info" class="col-form-label">Usuário:</label>
+                        <input type="text" class="form-control" id="user-info" name="user-info"/>
+                      </div>
+                      <div class="mb-3">
+                        <label for="password-info" class="col-form-label">Senha:</label>
+                        <input type="password" class="form-control" id="password-info" name="password-info"/>
+                        <input type="hidden" class="form-control" id="servidor-info" name="servidor-info"/>
+                        <input type="hidden" class="form-control" id="service-info" name="service-info"/>
+                      </div>
+                    </form>
+                    <div class="modal-footer">
+                      <button type="button" id="obter_informacoes" class="btn btn-primary">Obter Informações</button>
+                    </div>
+                </div>
+                <div class="col-8 servidor-infos">
+                    <div id="cpu-info"></div>
+                    <div id="memory-info"></div>
+                    <div id="disk-info"></div>
+                </div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

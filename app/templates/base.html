@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    {% block script %} {% endblock %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %} {% endblock %}</title>
+    <style>
+        body {
+            font-size: 10pt;
+        }
+        .expanded {
+            max-height: fit-content !important;
+            overflow: auto;
+        }
+        #trace{
+            max-height: 55px;
+            display: block;
+            overflow: hidden;
+        }
+        #config{
+            width: 100%;
+            height: 300px;
+            line-break: anywhere;
+        }
+        #show_table{
+            font-size: 10pt;
+        }
+        .con-details{
+            cursor: pointer;
+        }
+        #mensagem {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: none;
+            width: fit-content;
+            text-align: center;
+        }
+        #details_table{
+            border: 1px solid;
+        }
+        input.count{
+            width: 100%;
+            padding: 5px;
+            border-radius: 8px;
+            background: transparent;
+            text-align: center;
+        }
+        .nav-item.user{
+            display: flex;
+            align-items: center;
+        }
+    </style>
+    <script>
+        function exibirMensagem(tipo, texto, tempo) {
+            const mensagemElement = $('#mensagem');
+            mensagemElement.removeClass('alert-success alert-danger alert-info').addClass(`alert-${tipo}`);
+            mensagemElement.text(texto);
+            mensagemElement.show();
+        
+            setTimeout(function() {
+                mensagemElement.fadeOut();
+            }, tempo);
+        }
+    </script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light" style="height: 70px;">
+        <div class="container">
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'servidores' %}">Servidores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'slots' %}">Slots</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'gerenciador_kafka' %}">Gerenciador Kafka</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'jira' %}">Jira</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'expurgo' %}">Expurgo</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'acessos' %}">Acessos</a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item user">
+                        Bem vindo {{ request.user }}
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Sair</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <div id="mensagem" class="alert" role="alert"></div>
+    {% block content %} {% endblock %}
+    
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.min.js" integrity="sha384-Rx+T1VzGupg4BHQYs2gCW9It+akI2MM/mndMCy36UVfodzcJcF0GGLxZIzObiEfa" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+{% block title %} Gerenciador Kafka {% endblock %}
+{% block script %}
+<script>
+    function sendGrid(funcao){
+        exibirMensagem('info', 'Carregando dados...', 10000)
+        var server = $('#servers').val();
+        var filter = $('#filter').val();
+        var table = $('#show_table');
+        var tableBody = $('#show_table_body');
+        var tableHead = $('#show_table_head');
+        var tableUrl = "{% url 'actions' %}";
+
+        $.ajax({
+            url: tableUrl,
+            data: {'filter': filter, 'function': funcao, 'server': server},
+            dataType: 'json',
+            success: function(data) {
+                tableHead.empty();
+                tableBody.empty();
+
+                var headerRow = $('<tr>');
+                $.each(Object.keys(data), function(index, key) {
+                    headerRow.append($('<th>').text(key));
+                });
+                tableHead.append(headerRow);
+
+                $.each(new Array(data[Object.keys(data)[0]].length), function(index) {
+                    var bodyRow = $('<tr>', {'class': 'con-row'});
+                    $.each(Object.keys(data), function(_, key) {
+                        val = data[key][index]
+                        if(key == 'state' || key == 'task_state')
+                            val = $(val).addClass('con-state')
+                        else if(key == 'conector')
+                            val = $('<span>', {'class': 'con-details', 'data-bs-toggle': "modal", 'data-bs-target': "#connectModal", 'text': val})
+                        else if(key == 'config'){
+                            val = `${val.replace(/'/g, '"')}`
+                            val = JSON.parse(val)
+                            val = JSON.stringify(val, null, 2)
+                            val = $('<pre>', {'class': 'con-config', 'text': val})
+                        }
+
+                        var valueCell = $('<td>').html(val);
+                        bodyRow.append(valueCell);
+                    });
+                    
+                    tableBody.append(bodyRow);
+                });                    
+            },
+            error: function () {
+                exibirMensagem('danger', 'Erro ao carregar dados', 5000)
+            }
+        }).then(() => {
+            exibirMensagem('success', 'Dados Carregados', 5000)
+            $('.con-details').on('click', function() {
+                var conector = $(this).text()
+                exibirMensagem('info', 'Carregando dados...', 10000)
+                
+                $("#connectModalLabel").text('Carregando Conector '+conector+'... ')
+                $("#config").val('Carregando...')
+                $("#task").text('Carregando...')
+                $("#state").text('Carregando...')
+                $("#trace").text('Carregando...')
+                $.ajax({
+                    url: tableUrl,
+                    data: {'filter': $(this).text(), 'function': 'show_details', 'server': server},
+                    dataType: 'json',
+                    success: function(data) {
+                        $("#connectModalLabel").text(conector)
+                        val = `${data['config'][0].replace(/'/g, '"')}`
+                        val = JSON.parse(val)
+                        val = JSON.stringify(val, null, 2)
+                        $("#config").val(val)
+                        $("#task").text(data['task'][0])
+                        $("#state").html($(data['state'][0]))
+                        $("#trace").text(data['trace'][0])
+                        exibirMensagem('success', 'Carregado!', 5000)
+                    }
+                });
+            })
+        });
+    }
+
+    $(document).ready(function() {
+        
+        const traceElement = $('#trace');
+        const verMaisButton = $('#ver-mais-button');
+        let isExpanded = false;
+
+        $('#ver-mais-button').on('click', function (event) {
+            event.preventDefault();
+            
+            if (isExpanded) {
+                traceElement.removeClass('expanded');
+                verMaisButton.text('Ver Mais');
+            } else {
+                traceElement.addClass('expanded');
+                verMaisButton.text('Ver Menos');
+            }
+            isExpanded = !isExpanded;
+        })
+        
+        // SELECT
+        $('#ambientes').on('change', function() {
+            var ambiente = $(this).val();
+            var serverSelect = $('#servers');
+            var serverUrl = serverSelect.data('url');
+            var serverSl = serverSelect.data('server');
+            
+            if(ambiente)
+                $.ajax({
+                    url: serverUrl,
+                    data: {'ambiente': ambiente, 'server': serverSl},
+                    dataType: 'json',
+                    success: function(data) {
+                        serverSelect.empty();
+                        $.each(data.servers, function(index, server) {
+                            serverSelect.append($('<option>', {
+                                value: server.name,
+                                text: server.name
+                            }));
+                        });
+                    }
+                }).then(() => {
+                    sendGrid('show')
+                });
+            else
+                serverSelect.empty();
+        });
+
+        
+
+        // Filtro        
+        
+        
+        function filtrarConectores() {
+            var filtro = $("#filter").val().toLowerCase();
+            var linhasVisiveis = 0;
+            $(".con-row").each(function() {
+                var nomeConector = ''
+                var statusConector = ''
+                var configConector = ''
+                if($(this).find(".con-details"))
+                    nomeConector = $(this).find(".con-details").text().toLowerCase();
+                if($(this).find(".con-state"))
+                    statusConector = $(this).find(".con-state").text().toLowerCase();
+                if($(this).find(".con-config"))
+                    configConector = $(this).find('.con-config').text().toLowerCase();
+
+                if (nomeConector.includes(filtro) || statusConector.includes(filtro) || configConector.includes(filtro)) {
+                    $(this).show();
+                    linhasVisiveis++;
+                } else {
+                    $(this).hide();
+                }
+            });
+            
+            $(".count").val(linhasVisiveis);
+        }
+        $("#filter").on("keyup", filtrarConectores);
+
+        // Executar
+        $('#btn-executar').on('click', function() {
+            var funcao = $('#function').val();
+            var server = $('#servers').val();
+            var filter = $('#filter').val();
+            var text = 'Tem certeza que deseja a função ' + funcao.toUpperCase() + ' no servidor ' + server.toUpperCase() + ' com o filtro ' + (filter ? filter.toUpperCase() : 'vazio') + ' ?'
+
+            if(server && funcao && window.confirm(text))
+                sendGrid(funcao)
+        });
+
+        $('#btn-novo').on('click', function() {
+            ambientes = $('#ambientes').val()
+            console.log(ambientes)
+            if(!ambientes){
+                alert('Escolha primeiro um Ambiente')
+                return 0;
+            }
+            $('#connectNovoModal').modal('show')
+        });
+
+        $('#salvar_conector_novo').on('click', function (event){
+            event.preventDefault();
+            var conector = $('#novo_conector').val()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'recriar_conectores' %}";
+            var config = $('#novo_config').val();
+            if(confirm('Deseja realmente salvar o conector ' + conector + '?')){
+                exibirMensagem('info', 'Salvando...', 10000)
+                $.ajax({
+                    url: tableUrl,
+                    data: {'filter': conector, 'server': server, 'config': config},
+                    dataType: 'json',
+                    method: 'POST',
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    },
+                    success: function(data) {
+                        console.log(data)
+                        exibirMensagem('success', 'Conector Criado!', 5000)
+                    }
+                }).then(()=>{
+                    $('.btn-close').trigger('click');
+                    sendGrid('show')
+                });
+            }
+        });
+
+
+        $('#restart_conector').on('click', function (event){
+            event.preventDefault();
+            exibirMensagem('info', 'Reiniciando...', 5000)
+            var conector = $('#connectModalLabel').text()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'actions' %}";
+            $.ajax({
+                url: tableUrl,
+                data: {'filter': conector, 'function': 'restart', 'server': server},
+                dataType: 'json',
+                success: function(data) {
+                    exibirMensagem('success', 'Conector Reiniciado!', 5000)
+                }
+            }).then(()=>{
+                $('.btn-close').trigger('click');
+                setTimeout(function() {
+                    $(".con-details").each( function () {
+                        if ($(this).text() == conector) {
+                            $(this).trigger('click');
+                            return 0
+                        }
+                    });
+                }, 1000);
+            });
+        });
+        
+        $('#delete_conector').on('click', function (event){
+            event.preventDefault();
+            var conector = $('#connectModalLabel').text()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'actions' %}";
+            if(confirm('Deseja realmente excluir o conector ' + conector + '?')){
+                exibirMensagem('info', 'Excluindo...', 10000)
+                $.ajax({
+                    url: tableUrl,
+                    data: {'filter': conector, 'function': 'delete', 'server': server},
+                    dataType: 'json',
+                    success: function(data) {
+                        exibirMensagem('success', 'Conector Excluido!', 5000)
+                    }
+                }).then(()=>{
+                    $('.btn-close').trigger('click');
+                    sendGrid('show')
+                });
+            }
+        });
+
+        
+        $('#pause_conector').on('click', function (event){
+            event.preventDefault();
+            var conector = $('#connectModalLabel').text()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'actions' %}";
+            if(confirm('Deseja realmente pausar o conector ' + conector + '?')){
+                exibirMensagem('info', 'Pausando...', 10000)
+                $.ajax({
+                    url: tableUrl,
+                    data: {'filter': conector, 'function': 'pause', 'server': server},
+                    dataType: 'json',
+                    success: function(data) {
+                        exibirMensagem('success', 'Conector Pausado!', 5000)
+                    }
+                }).then(()=>{
+                    $('.btn-close').trigger('click');
+                    sendGrid('show')
+                });
+            }
+        });
+        
+        $('#start_conector').on('click', function (event){
+            event.preventDefault();
+            var conector = $('#connectModalLabel').text()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'actions' %}";
+            exibirMensagem('info', 'Iniciando...', 10000)
+            $.ajax({
+                url: tableUrl,
+                data: {'filter': conector, 'function': 'resume', 'server': server},
+                dataType: 'json',
+                success: function(data) {
+                    exibirMensagem('success', 'Conector Iniciado!', 5000)
+                }
+            }).then(()=>{
+                $('.btn-close').trigger('click');
+                sendGrid('show')
+            });
+        });
+
+        $('#salvar_conector').on('click', function (event){
+            event.preventDefault();
+            var conector = $('#connectModalLabel').text()
+            var server = $('#servers').val();
+            var tableUrl = "{% url 'recriar_conectores' %}";
+            var config = $('#config').val();
+            if(confirm('Deseja realmente alterar o conector ' + conector + '?')){
+                exibirMensagem('info', 'Editando...', 10000)
+                $.ajax({
+                    url: tableUrl,
+                    data: {'filter': conector, 'server': server, 'config': config},
+                    dataType: 'json',
+                    method: 'POST',
+                    beforeSend: function(xhr, settings) {
+                        xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+                    },
+                    success: function(data) {
+                        exibirMensagem('success', 'Conector Alterado!', 5000)
+                    }
+                }).then(()=>{
+                    $('.btn-close').trigger('click');
+                    sendGrid('show')
+                });
+            }
+        });
+        
+
+    });
+</script>
+{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="row d-flex p-2">
+        <div class="col p-2">
+            <select name="ambientes" id="ambientes" class="form-control text-center">
+                <option value="">-- selecionar --</option>
+                {% for amb in ambientes %}
+                    <option value="{{ amb }}">{{ amb }}</option>
+                {% endfor%}
+            </select>
+        </div>
+        <div class="col p-2">
+            <select name="servers" id="servers" class="form-control text-center" data-url="{% url 'get_ambiente' %}" data-server="kafkaconnect">
+            </select>
+        </div>
+        <div class="col p-2">
+            <select name="function" id="function" class="form-control text-center">
+                {% for function in functions %}
+                    <option value="{{ function }}">{{ function }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="row p-2 text-center">
+        <div class="col-sm-1">
+            <input type="text" disabled="True" class="count">
+        </div>
+        <div class="col-sm-8">
+            <input type="text" id="filter" name="filter" class="form-control text-center" placeholder="Filtro ex: failed / running / unassigned / nome do conector "/>
+        </div>
+        <div class="col-sm-1">
+            <button id="btn-executar" class="btn btn-primary">Executar</button>
+        </div>
+        <div class="col-sm-2">
+            <button id="btn-novo" class="btn btn-primary">Criar Novo</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            <table class="table table-light" id="show_table">
+                <thead id="show_table_head">
+                </thead>
+                <tbody id="show_table_body">
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<div class="modal fade" id="connectModal" tabindex="-1" aria-labelledby="connectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="connectModalLabel">Conector</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="container">
+                <div class="row">
+                    <div class="col-4">
+                        <div class="mb-3">
+                          <label for="user" class="col-form-label">Usuário:</label>
+                          <input type="text" class="form-control" id="user" name="user"/>
+                        </div>
+                        <div class="mb-3">
+                          <label for="password" class="col-form-label">Senha:</label>
+                          <input type="password" class="form-control" id="password" name="password"/>
+                          <input type="hidden" class="form-control" id="servidor" name="servidor"/>
+                          <input type="hidden" class="form-control" id="service" name="service"/>
+                        </div>
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <button type="button" class="btn btn-warning" id="restart_conector">Reiniciar</button>
+                                </div>
+                                <div class="col-sm-3">
+                                    <button type="button" class="btn btn-primary" id="pause_conector">Pausar</button>
+                                </div>
+                                <div class="col-sm-3">
+                                    <button type="button" class="btn btn-success" id="start_conector">Iniciar</button>
+                                </div>
+                                <div class="col-sm-3">
+                                    <button type="button" class="btn btn-danger" id="delete_conector">Excluir</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-8">
+                        <div class="row">
+                            <div class="col">
+                                <label for="state"><b>Status: </b></label><span id="state"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label for="task"><b>Task: </b></label>
+                                <span id="task"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label for="trace"><b>Trace: </b></label><span id="trace"></span>
+                                <button id="ver-mais-button" class="btn btn-link">Ver Mais</button>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <textarea name="config" id="config"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Cancelar</button>
+          <button type="button" id="salvar_conector" data-bs-dismiss="modal" class="btn btn-primary">Salvar alterações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  
+<div class="modal fade" id="connectNovoModal" tabindex="-1" aria-labelledby="connectNovoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+      <div class="modal-content">
+        <div class="modal-header">
+            <h3 id='connectNovoModalLabel'>Criar Novo Conector</h3>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="container">
+                <div class="row">
+                    <div class="col-12">
+                        <h4>Nome do Conector</h4>
+                        <div class="row my-3">
+                            <div class="col">
+                                <input class="form-control w-100" id="novo_conector" placeholder="Nome do Novo Conector"/>
+                            </div>
+                        </div>
+                        <h4>Configuração do Conector</h4>
+                        <div class="row my-3">
+                            <div class="col">
+                                <textarea name="config" id="novo_config" class='form-control' style="height: 500px;" placeholder="Config do conector"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Cancelar</button>
+          <button type="button" id="salvar_conector_novo" data-bs-dismiss="modal" class="btn btn-primary">Salvar alterações</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %} Inicio {% endblock %}
+{% block script %}
+<script>
+    function filtrarServidores() {
+        var filtro = $("#filtro-servidor").val().toLowerCase();
+        $(".servidor-row").each(function() {
+            var nomeServidor = $(this).find(".nome-servidor").text().toLowerCase();
+            var statusServidor = $(this).find(".status-servidor").text().toLowerCase();
+            if (nomeServidor.includes(filtro) || statusServidor.includes(filtro)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+
+    $(document).ready(function() {
+        $("#filtro-servidor").on("keyup", filtrarServidores);
+    });
+</script>
+<style>
+    .servers {
+        padding-top: 15px;
+        gap: 2px;
+    }
+    .servidor-row{
+        box-shadow: 0px 0px 3px 1px rgba(0,0,0,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 5px auto;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .servidor-row:hover{
+        background-color: rgba(0, 0, 0, 0.1);
+        transform: scale(1.08);
+        box-shadow: 0px 0px 6px 2px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-wrap">
+    <div class="row servers">
+        {% for servidor in servidores %}
+            <div class="col-sm-2 p-3 d-flex servidor-row text-light {% if servidor.status %}bg-success{% else %}bg-danger{% endif %}">
+                <div class="col-sm">
+                    <div class="nome-servidor">{{ servidor.nome }}</div>
+                    <div>{{ servidor.service }}</div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>    
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %} Jira {% endblock %}
+{% block script %} 
+<script>
+    
+    function filtrarFiles() {
+        var filtro = $("#filter").val().toLowerCase();
+        $(".con-row").each(function() {
+            var nameFolder = $(this).find(".folder").text().toLowerCase();
+
+            if (nameFolder.includes(filtro)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
+    function generic_send(url, data, callback) {
+        $.ajax({
+            url: url,
+            data: data,
+            method: 'POST',
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", '{{ csrf_token }}');
+            },
+            success: callback
+        })
+    }
+    $(document).ready(() => {
+        $("#filter").on("keyup", filtrarFiles);
+
+        $(document).on('click', '.folder', function() {
+            var folder = $(this).text();
+            generic_send("{% url 'show_files' %}", { folder: folder })
+        })
+
+        $('#new_folder').on('click', function() {
+            var folder = $("#filter").val();
+            generic_send("{% url 'create_folder' %}", { folder: folder }, function(r){ 
+                if(r){
+                    exibirMensagem('success', 'Pasta Criada', 5000);
+                    $('#show_table_body').append('<tr class="con-row"><td class="folder">' + folder + '</td></tr>');
+                }else
+                    exibirMensagem('danger', 'Erro ao criar pasta', 5000);
+
+             })
+        })
+
+        $('#reorganize').on('click', function() {
+            generic_send("{% url 'reorganize' %}", {}, function(r){
+                if(r){
+                    exibirMensagem('success', 'Pasta reorganizada', 5000);
+                }else{
+                    exibirMensagem('danger', 'Erro ao reorganizar', 5000);
+                }
+            })
+        })
+    })
+</script>
+<style>
+    .folder {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+{% block content %}
+
+<div class="container">
+    
+    <div class="row p-2">
+        <div class="col-sm-8">
+            <input type="text" id="filter" name="filter" class="form-control text-center" placeholder="Filtrar pasta / Nova Pasta"/>
+        </div>
+        <div class="col-sm-2">
+            <button id="new_folder" name="new_folder" class="btn btn-primary">Criar pasta</button>
+        </div>
+        <div class="col-sm-2">
+            <button id="reorganize" name="reorganize" class="btn btn-primary">Reorganizar</button>
+        </div>
+    </div>
+    <table class="table table-light" id="show_table">
+        <thead id="show_table_head">
+            <tr>
+                <th>Pasta</th>
+                <th>Ultima_modificação</th>
+            </tr>
+        </thead>
+        <tbody id="show_table_body">
+            {% for folder in folders %}
+            <tr class="con-row">
+                <td class="folder">{{ folder.folder_name }}</td>
+                <td class="folder">{{ folder.modification_time }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

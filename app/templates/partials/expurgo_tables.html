@@ -1,0 +1,44 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th><input type="checkbox" id="select-all"></th>
+            <th>Servidor</th>
+            <th>Base</th>
+            <th>Tabela</th>
+            <th>MB</th>
+            <th>Create_date</th>
+            <th>Deletado</th>
+            <th>Data_Excluir</th>
+            <th>Data_deletado</th>
+        </tr>
+    </thead>
+    <tbody id="status-tabelas">
+        {% for servidor in servidores %}
+            <tr class="servidor-row">
+                <td><input type="checkbox" name="{{ servidor.id }}"></td>
+                <td class="nome-servidor">{{ servidor.servidor }}</td>
+                <td>{{ servidor.base }}</td>
+                <td  class="status-servidor">
+                    {{ servidor.tabela }}
+                </td>
+                <td>{{ servidor.tamanhomb }}</td>
+                <td>
+                    {{ servidor.datahora }}
+                </td>
+                <td class="deletado">
+                    {% if servidor.deletado %}
+                        <span class="text-success">Dropada</span>
+                    {% else %}
+                        <span class="text-danger">Não Excluida</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {{ servidor.datahoratodelete }}
+                </td>
+                <td>
+                    {{ servidor.datahoradeletado }}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

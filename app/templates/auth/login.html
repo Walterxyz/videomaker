@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        /* Estilização do formulário */
+        *{
+            font-family: sans-serif;
+        }
+        form {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .login_container{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Estilização dos campos de entrada */
+        input[type="text"],
+        input[type="password"],
+        input[type="email"] {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Estilização do botão de login */
+        button[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Estilização dos links e rótulos */
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        label {
+            font-weight: bold;
+        }
+        /* Estilização geral para mensagens de alerta */
+        .alert {
+            padding: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        /* Estilização para mensagens de erro (alert-danger) */
+        .alert-danger {
+            color: #721c24; /* Cor do texto para erros */
+            background-color: #f8d7da; /* Cor de fundo para erros */
+            border-color: #f5c6cb; /* Cor da borda para erros */
+        }
+
+        /* Estilização para mensagens de sucesso (alert-success) */
+        .alert-success {
+            color: #155724; /* Cor do texto para sucesso */
+            background-color: #d4edda; /* Cor de fundo para sucesso */
+            border-color: #c3e6cb; /* Cor da borda para sucesso */
+        }
+
+        /* Estilização para mensagens de informações (alert-info) */
+        .alert-info {
+            color: #0c5460; /* Cor do texto para informações */
+            background-color: #d1ecf1; /* Cor de fundo para informações */
+            border-color: #bee5eb; /* Cor da borda para informações */
+        }
+
+        /* Estilização para mensagens de aviso (alert-warning) */
+        .alert-warning {
+            color: #856404; /* Cor do texto para avisos */
+            background-color: #fff3cd; /* Cor de fundo para avisos */
+            border-color: #ffeeba; /* Cor da borda para avisos */
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 login_container">
+                <h2 class="mt-4 mb-4">Login</h2>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="id_username">Nome de Usuário:</label>
+                        {{ form.username }}
+                    </div>
+                    <div class="form-group">
+                        <label for="id_password">Senha:</label>
+                        {{ form.password }}
+                    </div>
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %} Inicio {% endblock %}
+{% block script %}
+<script>
+
+    let DATAHORA = null;
+
+    function filtrarServidores() {
+        var filtro = $("#filtro-servidor").val().toLowerCase();
+        $("#slots .grupo_servidor").each(function() {
+            var nomeServidor = $(this).find(".nome-servidor").text().toLowerCase();
+            let ativo = false;
+            
+            if (nomeServidor.includes(filtro)) {
+                $(this).show();
+                ativo = true;
+            } else {
+                $(this).hide();
+            }
+
+            $(this).find(".nome-slot").each(function() {
+                let text = $(this).text().toLowerCase();
+                if(text.includes(filtro) || ativo) {
+                    $(this).closest('.slot-row').css('display', 'flex');
+                } else {
+                    $(this).closest('.slot-row').hide();
+                }
+            });
+
+        });
+    }
+
+    function consultar(){
+        $('#loading-screen').show();
+        $('#slots').hide();
+        $.ajax({
+            url: "{% url 'consultar_slots' %}",
+            method: 'GET'
+        }).then(() =>{
+            atualizar_lista();
+        })
+    }
+
+    function atualizar_lista(){
+        $('#loading-screen').show();
+        $('#slots').hide();
+
+        $.ajax({
+            url: "{% url 'atualizar_slots' %}",
+            dataType: 'json',
+            success: function(data) {
+                $("#slots").html(data['html']);
+                DATAHORA = new Date(data['data_atualizado'])
+                let datahora = DATAHORA;
+                $("#data_atualizado").text(datahora.toLocaleString());
+            }
+        }).then(()=>{
+            $('#loading-screen').hide();
+            $('#slots').show();
+        });
+
+    }
+    function atualizar_tempo(){
+        var dataEntrada  = DATAHORA;
+        var dataAtual = new Date();
+        var diferencaEmSegundos = (dataAtual - dataEntrada) / 1000;
+
+        diferencaEmSegundos = Math.round(diferencaEmSegundos);
+
+        $('#time_atualizado').text(diferencaEmSegundos + ' segundos');
+    }
+
+    $(document).ready(function() {
+        $("#filtro-servidor").on("keyup", filtrarServidores);
+        $('#loading-screen').hide();
+
+        atualizar_lista();
+
+        setInterval(atualizar_tempo, 1000);
+
+        setInterval(atualizar_lista, 60000);
+    });
+</script>
+<style>
+    #slots {
+        padding-top: 15px;
+        gap: 2px;
+    }
+    .slot-row{
+        box-shadow: 0px 0px 3px 1px rgba(0,0,0,0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin: 5px auto;
+        border-radius: 10px;
+        text-align: center;
+        display: flex;
+    }
+    .slot-row:hover{
+        background-color: rgba(0, 0, 0, 0.1);
+        transform: scale(1.08);
+        box-shadow: 0px 0px 6px 2px rgba(0,0,0,0.3);
+    }
+    .grupo_servidor{
+        border-radius: 10px;
+        box-shadow: 0px 0px 3px 1px rgba(0,0,0,0.3);
+        padding: 10px;
+        margin: 15px auto;
+    }
+    
+    #loading-screen {
+        position: fixed;
+        top: 70px;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999; /* Ensure it appears above other content */
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row d-flex align-items-center p-2">
+        <div class="col-sm-6 text-center">
+            <input type="text" id="filtro-servidor" placeholder="Filtrar Servidor" class="form-control" onkeyup="filtrarServidores()">
+            <select name="" class="form-select" id=""></select>
+        </div>
+        <div class="col-sm-2 text-center">
+            <button type="button" class="btn btn-primary" onclick="consultar()">Consultar</button>
+        </div>
+        <div class="col-sm-4 text-center">
+            <div class="row">
+                <b>Última Atualização:</b> <label id="data_atualizado"></label>
+            </div>
+            <div class="row">
+                <b>Tempo desde a atualização:</b> <label id="time_atualizado"></label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="container d-flex flex-wrap">
+    <div id="loading-screen">
+        Consultando Slots...
+    </div>
+    <div id="slots">
+    </div>
+</div>    
+{% endblock %}

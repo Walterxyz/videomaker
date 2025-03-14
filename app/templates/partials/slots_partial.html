@@ -1,0 +1,18 @@
+{% for servidor in servidores %}
+    <div class="row grupo_servidor text-center gap-1"><h5 class="nome-servidor">{{ servidor.servidor }}</h5>
+    {% for slot in servidor.slots %}
+        <div class="col-sm-4 p-3 slot-row text-light {{ slot.class }}">
+            <div class="col-sm">
+                {% if slot.status %}
+                    <div>Ativo</div>
+                {% else %}
+                    <div>Inativo</div>
+                {% endif %}
+                <div class="nome-slot">{{ slot.nome }}</div>
+                <div>{{ slot.tamanho }}</div>
+                <div>{{ slot.datahora }}</div>
+            </div>
+        </div>
+    {% endfor %}
+    </div>
+{% endfor %}

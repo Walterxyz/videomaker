@@ -1,0 +1,28 @@
+<table class="table">
+    <thead>
+        <tr>
+            <th></th>
+            <th>Apelido</th>
+            <th>Servidor</th>
+            <th>Base</th>
+            <th>Usuario</th>
+            <th>Engine</th>
+            <th>CheckSlot</th>
+            <th></th>
+        </tr>
+    <thead>
+    <tbody>
+        {% for server in servidores %}
+            <tr class="servidor-row">
+                <td><input type="radio" name="{{ server.id }}"></td>
+                <td class="filtra-apelido">{{ server.apelido }}</td>
+                <td class="filtra-servidor">{{ server.servidor }}</td>
+                <td class="filtra-base">{{ server.bases }}</td>
+                <td class="filtra-usuario">{{ server.usuario }}</td>
+                <td class="filtra-engine">{{ server.engine }}</td>
+                <td class="filtra-slot text-center"><input type="checkbox" name="{{ server.id }}" class="ativa_slot" {% if server.inslots %}checked{% endif %}> </td>
+                <td><button type="button" class="btn btn-danger deletar_servidores" data-id="{{ server.id }}">X</a></td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>

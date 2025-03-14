@@ -1,0 +1,61 @@
+{% for servidor in servidores %}
+<tr class="servidor-row" id="{{ servidor.nome }}">
+    <td title="Servidor" class="nome-servidor {% if servidor.status_ping %}text-success{% else %}text-danger{% endif %}">{{ servidor.nome }}</td>
+    <td title="Porta">{{ servidor.porta }}</td>
+    <td title="Status do Serviço" class="status-servidor">
+        {% if servidor.status %}
+            <span class="text-success">Ativo</span>
+        {% else %}
+            <span class="text-danger">Parado</span>
+        {% endif %}
+    </td>
+    <td title="Serviço">{{ servidor.service }}</td>
+    <td title="Data ultima atualização">
+        {{ servidor.datahora }}
+    </td>
+    <td title="CPU Load">{{ servidor.cpuinfo }}</td>
+    <td title="Memoria Disponivel">{{ servidor.memoriainfo }}</td>
+    <td title="Disco %">{{ servidor.usoinfo }}</td>
+    <td title="Espaço Disponivel">{{ servidor.dispinfo }}</td>
+    <td>
+        <button title="Atualizar status (ping e telnet)" type="button" class="btn btn-primary atualizar-servico" data-service="{{ servidor.service }}" data-server="{{ servidor.nome }}">
+            Att
+        </button>
+    </td>
+    <td>
+        <button title="Atualizar e ver detalhes do servidor"  type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#infoModal" data-bs-service="{{ servidor.service }}" data-bs-server="{{ servidor.nome }}">
+            Detalhes
+        </button>
+    </td>
+    <td>
+        <button title="Reiniciar o serviço no servidor"  type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#restartModal" data-bs-service="{{ servidor.service }}" data-bs-server="{{ servidor.nome }}">
+            Reiniciar
+        </button>
+    </td>
+</tr>
+{% endfor %}
+
+<script>
+    $('button.atualizar-servico').on('click', function() {
+        exibirMensagem('info', 'Atualizando Status do Serviço...', 5000);
+        const click = $(this)
+        const servidor = click.data('server')
+        const servico = click.data('service')
+        $.ajax({
+            url: '{% url "atualizar_conexao" %}',
+            data: {'servico': servico, 'servidor': servidor},
+            method: 'GET',
+            success: function(response) {
+                if(response.status){
+                    exibirMensagem('info', 'Status Atualizado!', 5000);
+                    console.log('Conexões atualizadas com sucesso!');
+                    atualizarStatusServidores()
+                }
+            },
+            error: function(error) {
+                exibirMensagem('danger', 'Erro ao atualizar o Status!', 5000);
+                console.error('Ocorreu um erro ao atualizar as conexões.');
+            }
+        });
+    });
+</script>
